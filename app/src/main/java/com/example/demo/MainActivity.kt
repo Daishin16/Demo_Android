@@ -9,39 +9,49 @@ import kotlinx.android.synthetic.main.activity_main.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.regex.Pattern
+import android.widget.Toast
 
-class MainActivity : AppCompatActivity() {
-    var word = ""
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        val button = findViewById<Button>(R.id.button)
+            class MainActivity : AppCompatActivity() {
 
-        button.setOnClickListener {
-            word = editText.text.toString()
-            val intent = Intent(this, ResultActivity::class.java)
-            MyAsyncTask().execute()
-            startActivity(intent)
+                var word = ""
+                var imageUrlList = arrayListOf<String>()
+                override fun onCreate(savedInstanceState: Bundle?) {
+                    super.onCreate(savedInstanceState)
+                    setContentView(R.layout.activity_main)
+                    val button = findViewById<Button>(R.id.button)
+
+                    button.setOnClickListener {
+                        word = editText.text.toString()
+                        val intent = Intent(this, ResultActivity::class.java)
+
+            val task = object : MyAsyncTask() {
+                override fun onPostExecute(result: String?) {
+                    super.onPostExecute(result)
+                    intent.putExtra("list", imageUrlList)
+                    intent.putExtra("word", word)
+                    startActivity(intent)
+                }
+
+            }
+            task.execute()
         }
     }
 
-    inner class MyAsyncTask : AsyncTask<Void, Void, String>() {
 
+    open inner class MyAsyncTask : AsyncTask<Void, Void, String>() {
         override fun doInBackground(vararg p0: Void?): String? {
             return getHtml()
         }
 
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
-            val imageUrlList = arrayListOf<String>()
             val regex = "<img.+?src=\"(.+?)\".+?>"
             val pattern = Pattern.compile(regex)
             val matcher = pattern.matcher(result)
+            imageUrlList.clear()
             while (matcher.find()) {
                 imageUrlList.add(matcher.group(1))
             }
-            intent.putExtra("list", imageUrlList)
-
         }
     }
 
@@ -49,10 +59,9 @@ class MainActivity : AppCompatActivity() {
     fun getHtml(): String {
         val client = OkHttpClient()
         val req = Request.Builder().url("http://www.google.com/search?q=${word}&tbm=isch")
-            .header("UA", "UA:Mozilla/4.0 (compatible; MSIE 5.5; Windows 98)").get().build()
+            .header("User-Agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows 98)").get().build()
         val resp = client.newCall(req).execute()
         return resp.body!!.string()
-
     }
 
 }
